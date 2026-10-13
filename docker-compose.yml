@@ -1,0 +1,12 @@
+services:
+  bridge:
+    build: .
+    container_name: ez-bridge
+    ports:
+      - "10140:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./prompts:/app/prompts:ro
+      - ./config:/app/config
+    restart: unless-stopped

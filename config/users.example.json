@@ -1,0 +1,17 @@
+{
+  "users": [
+    {
+      "id": "default",
+      "bridge_token": "replace-with-a-random-bridge-token-for-default",
+      "ez_api_token": "replace-with-default-ez-api-token",
+      "bark_push_url": "https://bark.example.com/default-device-key"
+    },
+    {
+      "id": "user-b",
+      "initialize_from_default": true,
+      "bridge_token": "replace-with-a-different-random-bridge-token-for-user-b",
+      "ez_api_token": "replace-with-user-b-ez-api-token",
+      "bark_push_url": "https://bark.example.com/user-b-device-key"
+    }
+  ]
+}

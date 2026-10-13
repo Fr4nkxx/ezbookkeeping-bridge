@@ -1,0 +1,13 @@
+.env
+.DS_Store
+config/users.json
+tests/fixtures/*.jpg
+tests/fixtures/*.jpeg
+tests/fixtures/*.png
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+data/
+*.db
+tmp/
