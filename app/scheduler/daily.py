@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import math
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta
 from typing import Any
@@ -26,7 +27,8 @@ def seconds_until_next_daily_time(daily_time: str, tz_name: str) -> int:
     target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
     if target <= now:
         target = target + timedelta(days=1)
-    return max(1, int((target - now).total_seconds()))
+    # 向上取整，避免在目标时刻前不足 1 秒时提前执行并在整点再次执行。
+    return max(1, math.ceil((target - now).total_seconds()))
 
 
 async def run_daily(
