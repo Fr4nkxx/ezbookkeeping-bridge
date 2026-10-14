@@ -1,105 +1,99 @@
-# ezBookkeeping 截图记账助手
+# ezBookkeeping Bridge｜截图记账与余额对账
 
-这是一个配合 [ezBookkeeping](https://github.com/mayswind/ezbookkeeping) 使用的小工具。把付款、收款或资产页面的截图交给它，它会识别内容、匹配账户与分类，并把结果写进 ezBookkeeping。适合已经在使用 ezBookkeeping、希望减少手动输入的人。
+**从截图到入账，让日常记账更轻松。**
 
-## 能做什么
+ezBookkeeping Bridge 为 [ezBookkeeping](https://github.com/mayswind/ezbookkeeping) 增加截图识别入口。通过苹果快捷指令提交付款记录或账户余额截图，服务会结合现有账户与分类识别内容，将交易或余额调整写入账本，并把截图作为附件保存。它适合希望保留自托管账本，同时减少重复录入的个人和家庭。
 
-- **截图记账**：识别消费、收入和账户间转账，保存交易截图；记账时也可以选择传入当前位置。
-- **余额对账**：根据一张账户截图，比较 ezBookkeeping 中的余额，并记录差额。
-- **多图合计对账**：一次提交 2～10 张属于**同一个 ez 账户**、不同平台的截图，合计后只调整这一个账户。例如把微信与支付宝合计到现金账户，或把币安与 OKX 合计到同一个投资账户。多张截图会附在调整记录上；余额一致时不会创建记录。
-- **多人使用**：每个人使用自己的 ezBookkeeping 账户和快捷指令令牌，记账结果互不混用。需要时可从第一位 `default` 用户复制账户结构和分类给新用户。
-- **接入苹果快捷指令**：可以用快捷指令截图或选择照片、上传、接收结果，不必每次打开 ezBookkeeping 手动输入。
-- **按自己的习惯调整**：提示词放在 `prompts/` 中，修改后下次请求即可使用；账户名称和部分分类也可通过配置指定。
-- **可自行部署，数据留在自己的环境中**：将 ezBookkeeping、此工具和支持图片识别的模型都部署在自己的设备或内网，并关闭 Bark 等外部通知时，截图和账本数据可以只在自己的环境中处理。使用云端模型、外部 Bark 服务或其他公网服务时，相关数据会发送给相应服务。
+## 亮点
 
-识别结果可通过 Bark 推送到手机；不配置 Bark 也能使用，并可在快捷指令的请求结果中查看处理状态。截图不清楚、账户或币种无法确定时，工具会停止写入并提示重新检查。
+| 能力 | 带来的便利 |
+| --- | --- |
+| **截图即记账** | 识别支出、收入和账户间转账，匹配 ezBookkeeping 中的账户与二级分类；可附带当前位置。 |
+| **单图与多图余额对账** | 将截图余额与账面余额比较，按差额生成调整记录。支持一次合计 2～10 张不同平台的截图，再对同一个 ez 账户进行调整；余额一致时不新增记录。 |
+| **定时排查相同金额账单** | 每天按设定时间检查近 3 天的交易；发现相同金额时，通过 Bark 提醒核对，帮助发现可能的重复记账。提醒只供人工判断，不会修改交易。 |
+| **多人独立使用** | 每位使用者拥有自己的 ezBookkeeping 令牌、Bridge 令牌和通知配置，账本互不混用。新用户可从首位 `default` 用户一次性复制账户结构与分类，减少重复配置。 |
+| **配置可控、部署灵活** | 提示词可直接修改；视觉模型可接入兼容服务。ezBookkeeping、Bridge 与模型均可自行部署。若使用云端模型或外部 Bark 服务，相关数据会发送至对应服务。 |
 
-## 如何使用
+关键交易信息不足、账户或币种无法确认时，服务会提示核对。每次处理结果可从请求响应查看；配置 Bark 后，也可在手机上接收通知。
 
-### 先准备 ezBookkeeping
+## 快速开始
 
-在 ezBookkeeping 中建立自己的账户和分类，并为每位使用者生成 **API 令牌**。如果看不到生成入口，需先在 ezBookkeeping 中启用 API 令牌功能。此工具会把识别到的交易直接写入账本，请先确认账户和分类名称符合自己的记账方式。
+### 准备条件
 
-如需把截图保存在交易附件中，还要在 ezBookkeeping 中开启**交易图片**功能。本项目的截图记账及产生调整记录的对账流程会上传图片附件。
+- 已部署的 ezBookkeeping，且已启用 **API 令牌**和**交易图片**功能。
+- 可运行 Docker Compose、并能访问 ezBookkeeping 的电脑或 NAS。
+- 支持图片识别的 OpenAI 兼容模型服务；纯文本模型无法处理截图。
+- 可选：用于接收处理结果与相同金额提醒的 Bark。
 
-### 在苹果快捷指令中使用
+### 部署服务
 
-每位使用者在快捷指令里填写自己的 Bridge 令牌。请求地址使用部署此工具的设备地址，例如 `http://你的设备地址:10140`；若需要在外网使用，请先自行配置安全的访问方式。
-
-| 用途 | 快捷指令发送的内容 | 地址后缀 |
-| --- | --- | --- |
-| 截图记账 | 一张图片，文件字段名为 `image`；可选经纬度 | `/receipt` |
-| 单张余额对账 | 一张余额截图，文件字段名为 `image` | `/balance` |
-| 多图合计对账 | 2～10 张同一账户、不同平台的余额截图 | `/balance/aggregate` |
-
-快捷指令的基本步骤：
-
-1. 选择照片或截屏；需要时先用「转换图像」转成 JPEG。
-2. 添加「URL」和「获取 URL 内容」，方法选 **POST**，请求正文选**表单**。
-3. 在请求标头加入 `Authorization`，值为 `Bearer 你的bridge_token`。
-4. 单图流程添加一个**文件**字段 `image`，值选图片。记账时如需保存位置，再添加文本字段 `latitude`、`longitude`；不需要就都不添加。
-5. 多图流程可先用「选择照片」打开「选择多张」，再用「制作归档」把 2～10 张 JPEG 制成 ZIP；表单中只添加一个**文件**字段 `archive`，值选 ZIP。快捷指令无需把这个临时 ZIP 存入相簿或「文件」。
-6. 可以接一个「显示结果」查看状态；若配置了 Bark，也会收到处理通知。
-
-不要手动设置 `Content-Type`。多图的一批截图必须属于同一个 ez 账户，且币种一致；工具不会自动换汇，也不会把不同账户的余额混在一起。
-
-## 部署
-
-### 需要什么
-
-- 一套可正常使用的 ezBookkeeping，并能生成 API 令牌。
-- 一台运行 Docker Compose 的电脑或 NAS，能够连接 ezBookkeeping。
-- 一个**支持图片识别**的模型服务：可以自行部署，也可以使用兼容的云端服务。纯文本模型无法识别截图。
-- 可选：Bark，用来接收手机通知。
-
-### 启动
-
-1. 复制示例配置并填写自己的 ezBookkeeping 地址、API 令牌和模型服务信息：
+1. 复制配置文件：
 
    ```bash
    cp .env.example .env
    ```
 
-   `EZ_BASE_URL` 必须是 **Bridge 容器能够访问到**的 ezBookkeeping 地址；不要直接照搬示例中的本机地址。模型服务填写 `LLM_BASE_URL`、`LLM_MODEL` 和 `LLM_API_KEY`，自行部署模型时也使用该模型服务提供的地址。单用户模式填写 `EZ_API_TOKEN` 和 `BRIDGE_API_TOKEN`；默认现金账户名称与自己账本不同时，修改 `DEFAULT_CASH_ACCOUNT_NAME`。Bark 通知按需配置。
+2. 编辑 `.env`，填写 `EZ_BASE_URL`、`EZ_API_TOKEN`、`BRIDGE_API_TOKEN`，以及模型服务的 `LLM_BASE_URL`、`LLM_MODEL`、`LLM_API_KEY`。`EZ_BASE_URL` 必须是 **Bridge 容器能够访问到**的地址。若账本中的默认现金账户名称不同，还需修改 `DEFAULT_CASH_ACCOUNT_NAME`。
 
-2. 在项目目录启动：
+3. 启动并检查服务：
 
    ```bash
    docker compose up -d --build
    ```
 
-3. 打开 `http://你的设备地址:10140/health` 检查服务是否启动。需要查看启动与处理日志时，运行：
+   打开 `http://你的设备地址:10140/health`，返回 `status: ok` 即表示服务已启动。需要查看日志时运行 `docker compose logs -f bridge`。
 
-   ```bash
-   docker compose logs -f bridge
-   ```
+默认对外端口为 **10140**；修改 `docker-compose.yml` 中的端口后，快捷指令中的地址也需同步更新。
 
-默认使用设备的 **10140** 端口。如果更改了 `docker-compose.yml` 中的端口，快捷指令地址也要相应修改。
+### 接入苹果快捷指令
 
-### 多用户
+快捷指令以 `POST` 表单请求 Bridge，地址使用 `http://你的设备地址:10140` 加下表中的路径，并在请求标头加入 `Authorization: Bearer 你的bridge_token`。外网使用前，请自行配置安全的访问方式。
 
-1. 复制 `config/users.example.json` 为 `config/users.json`。为每个人填写不同的 `id`、`ez_api_token` 和 `bridge_token`；`bark_push_url` 可按人单独填写，也可删除。每个人在苹果快捷指令中只使用自己的 **Bridge 令牌**，不要把 ez API 令牌放进手机快捷指令。
-2. 在 `.env` 中启用 `BRIDGE_USERS_FILE=/app/config/users.json`，然后重新运行 `docker compose up -d --build`。启用后，以用户文件中的令牌为准。
-3. 如果各人的现金账户名称或 ezBookkeeping 地址不同，可在相应用户项中设置 `default_cash_account_name`、`ez_base_url`。
+| 场景 | 路径 | 表单内容 |
+| --- | --- | --- |
+| 截图记账 | `/receipt` | 文件字段 `image`：一张付款、收款或转账截图；可选文本字段 `latitude` 与 `longitude`，两者需同时提供。 |
+| 单图余额对账 | `/balance` | 文件字段 `image`：一张显示账户余额的截图。 |
+| 多图合计对账 | `/balance/aggregate` | 文件字段 `archive`：包含 2～10 张余额截图的 ZIP。 |
 
-示例用户文件中的 `initialize_from_default` 仅用于**有意给新用户复制账户和分类**时。若不需要复制，请把它设为 `false` 或删除。设为 `true` 后，下次启动会先删除该目标用户原有的分类，再从第一位 `default` 用户复制可见账户结构和分类；完成后标记会自动改为 `false`。不会复制余额、交易记录或图片。建议只对尚未正式记账的新用户使用。
+在快捷指令中可用「选择照片」或截屏获取图片，必要时先「转换图像」为 JPEG，再通过「获取 URL 内容」发送表单。多图流程可用「选择多张」和「制作归档」生成临时 ZIP；无需将 ZIP 保存到相簿或「文件」。最后添加「显示结果」即可查看处理状态。**不要手动设置 `Content-Type`**，由快捷指令自动生成表单边界。
 
-## 提示词与分类：请按自己的账本修改
+多图对账中的截图必须属于**同一个 ez 账户**、来自不同平台且币种一致。服务不会自动换汇，也不会将不同账户的余额合并。
 
-本项目的提示词和 ezBookkeeping 中的**账户、二级分类及分类说明**关系很紧密。模型会参考你当前账本里的候选项来选账户和分类。如果分类名称、用途与提示词中的约定不同，可能识别成功却无法匹配，或记到不符合你习惯的地方。
+## 进阶配置
 
-我目前的做法是：
+### 定时检查可能重复的账单
 
-- 把微信、支付宝、银行卡等日常资金归到一个默认现金账户。日常消费从这个账户记账；现金余额对账的差额归入名为「**修改余额**」的收入或支出二级分类。
-- 基金、股票、虚拟币等放在对应投资账户。投资余额对账产生的差额归入名为「**涨跌**」的收入或支出二级分类。
-- 自己的账户之间转钱按**转账**处理；消费和收入则依据具体用途选择已有二级分类。分类说明写清用途，有助于模型区分相近的分类。
+单用户模式下在 `.env` 设置 `BARK_PUSH_URL`；多用户模式下，为需要提醒的用户设置 `bark_push_url`。服务会按 `DUPLICATE_WATCH_DAILY_TIME` 每天执行一次，默认 **09:00**，时区由 `DEFAULT_TIMEZONE` 指定。只有配置了通知渠道的用户才会进行检查；没有发现相同金额时不会推送提醒。
 
-这些只是我的记账规则，**不是 ezBookkeeping 的统一分类标准**。别人使用时，请先对照自己的账户与分类，修改 `prompts/receipt.txt`、`prompts/balance.txt` 和 `prompts/balance_aggregate.txt`，尤其是默认现金账户、转账判断、投资账户以及「修改余额」「涨跌」的叫法。也可以在 `.env` 中指定对账分类的完整路径。修改提示词后，下一次请求就会读取新内容。
+```dotenv
+BARK_PUSH_URL=https://bark.example.com/YOUR_DEVICE_KEY
+DUPLICATE_WATCH_DAILY_TIME=09:00
+```
 
-建议先用清楚的截图核对几笔结果，再正式用于日常记账。截图中只出现收益、单个持仓或不完整余额时，不应拿来做总余额对账。
+检查范围为最近 **3 天**，筛选条件是交易金额相同，因此正常交易也可能被列入提醒。请在 ezBookkeeping 中结合时间、账户和备注人工核对。
+
+### 多用户与账户分类初始化
+
+1. 复制 `config/users.example.json` 为 `config/users.json`。首位用户须为 `id: "default"`；为每位用户配置不同的 `bridge_token` 和各自的 `ez_api_token`，并按需填写 `bark_push_url`、`default_cash_account_name` 或 `ez_base_url`。示例中的 `initialize_from_default` 为 `true`；暂不复制时请先改为 `false`。
+2. 在 `.env` 中设置 `BRIDGE_USERS_FILE=/app/config/users.json`，然后运行 `docker compose up -d --build`。启用多用户模式后，以用户文件中的令牌为准；快捷指令只需保存对应用户的 **Bridge 令牌**。
+3. 新用户需要沿用 `default` 的设置时，将该用户的 `initialize_from_default` 设为 `true`，先预览变更，再重启 Bridge。服务启动时会复制可见账户结构和分类；成功后自动将标记改回 `false`。
+
+**初始化会先删除目标用户已有的分类。**它不会复制余额、交易记录、图片等个人数据，适合尚未正式记账的新用户。若目标账户结构冲突或来源使用自定义图标，初始化会停止并保留标记。可在启动前运行以下命令预览变更：
+
+```bash
+docker compose run --rm bridge python -m scripts.copy_default_catalog --target user-b
+```
+
+其中 `user-b` 替换为 `config/users.json` 中的目标用户 `id`。预览命令不会执行复制；确认后运行 `docker compose restart bridge` 完成初始化。
+
+### 让识别结果符合自己的账本
+
+模型会参考 ezBookkeeping 中已有的账户、二级分类和分类说明。建议先整理分类用途，再检查 `prompts/receipt.txt`、`prompts/balance.txt` 和 `prompts/balance_aggregate.txt` 是否符合自己的记账规则。提示词修改后，下次请求即可生效。
+
+默认示例将微信、支付宝和银行卡等日常资金归入一个现金账户，将基金、股票和虚拟币归入相应投资账户。现金余额调整默认匹配名称含「修改余额」的收支二级分类；投资余额调整默认匹配名称含「涨跌」的收支二级分类。这些是示例约定，并非 ezBookkeeping 的统一标准。若分类名称不同，可修改提示词，或在 `.env` 中通过 `BALANCE_ADJUST_*_CATEGORY_PATH`、`BALANCE_INVESTMENT_*_CATEGORY_PATH` 指定完整分类路径。
+
+首次使用时，建议用清晰的截图核对几笔结果。只显示收益、单个持仓或局部余额的页面，不适合作为总余额对账依据。
 
 ## 致谢与说明
 
-感谢 [ezBookkeeping](https://github.com/mayswind/ezbookkeeping) 提供账本与开放接口，[Bark](https://github.com/Finb/Bark) 提供可选的手机通知，以及苹果**快捷指令**提供便捷的操作入口。本项目使用 FastAPI 等开源工具构建。
-
-本项目的代码、提示词和文档由 **AI（Codex）完成**。
+感谢 [ezBookkeeping](https://github.com/mayswind/ezbookkeeping) 提供账本与开放接口、[Bark](https://github.com/Finb/Bark) 提供可选通知，以及苹果快捷指令提供手机端入口。本项目基于 FastAPI 等开源工具构建；代码、提示词和文档由 AI（Codex）完成。
